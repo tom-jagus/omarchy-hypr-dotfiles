@@ -23,7 +23,7 @@ assign_workspace("6", "eDP-1", "scrolling", true)
 assign_workspace("7", "eDP-1", "scrolling")
 assign_workspace("8", "eDP-1", "scrolling")
 assign_workspace("9", "eDP-1", "scrolling")
-assign_workspace("10", "eDP-1", "dwindle")
+assign_workspace("10", "eDP-1", "scrolling")
 
 -- 1: Browsers supported by Omarchy, plus Vivaldi.
 -- Full-class matches keep separate webapps unaffected; (?i) ignores case.
