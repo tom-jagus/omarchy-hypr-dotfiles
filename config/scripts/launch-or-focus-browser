@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Resolve the default browser on every invocation. Match its class exactly so
+# browser-hosted webapps cannot steal focus. Unknown browsers are launched.
+set -euo pipefail
+
+desktop_id=$(env -u BROWSER xdg-settings get default-web-browser 2>/dev/null || true)
+if [[ -z $desktop_id ]]; then
+  desktop_id=$(xdg-mime query default x-scheme-handler/https 2>/dev/null || true)
+fi
+
+# Desktop IDs and Wayland classes are not necessarily identical.
+# Add another entry here after checking `hyprctl clients -j`.
+case "$desktop_id" in
+  vivaldi-stable.desktop) classes='["vivaldi-stable", "vivaldi"]' ;;
+  vivaldi-snapshot.desktop) classes='["vivaldi-snapshot"]' ;;
+  chromium.desktop) classes='["chromium", "Chromium"]' ;;
+  google-chrome.desktop) classes='["google-chrome", "Google-chrome"]' ;;
+  brave-browser.desktop|brave-browser-stable.desktop) classes='["brave-browser", "Brave-browser"]' ;;
+  brave-origin.desktop) classes='["brave-origin", "Brave-origin", "brave-browser", "Brave-browser"]' ;;
+  zen.desktop|zen-browser.desktop) classes='["zen", "Zen", "zen-browser"]' ;;
+  firefox.desktop|org.mozilla.firefox.desktop) classes='["firefox", "org.mozilla.firefox"]' ;;
+  microsoft-edge.desktop) classes='["microsoft-edge", "Microsoft-edge"]' ;;
+  *) exec omarchy launch browser ;;
+esac
+
+address=$(hyprctl clients -j | jq -r --argjson classes "$classes" '
+  [.[] | select(.class as $class | $classes | index($class))]
+  | .[0].address // empty
+')
+
+if [[ -n $address ]]; then
+  hyprctl dispatch "hl.dsp.focus({ window = \"address:$address\" })" >/dev/null
+else
+  exec omarchy launch browser
+fi
