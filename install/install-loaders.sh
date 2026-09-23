@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Fresh-install integration; the first argument is the runtime config/ directory.
-# Explicit paths also allow isolated fixture tests.
+# Integrate runtime config/ with the user Hyprland config and Omarchy templates.
 # Keep Omarchy defaults intact and refuse existing personal customizations.
 set -euo pipefail
 fail() { printf 'install-loaders: %s\n' "$*" >&2; exit 1; }
