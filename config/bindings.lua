@@ -28,10 +28,10 @@ bind("SUPER + SHIFT + G", "Signal", { omarchy = "signal" })
 bind("SUPER + SHIFT + SLASH", "Proton Pass", { launch = "proton-pass", focus = "^Proton Pass$" })
 
 -- Keep native ChatGPT and the browser-hosted ChatGPT independent.
-bind("SUPER + SHIFT + CTRL + A", "Omarchy Agent", { launch = "omarchy-agent --pick", focus = "^org\\.omarchy\\.agent$" })
+bind("SUPER + SHIFT + A", "Omarchy Agent", { launch = "omarchy-agent --pick", focus = "^org\\.omarchy\\.agent$" })
 -- Native ChatGPT is optional; the webapp remains available independently.
 if o.cmd_present("chatgpt") then
-  bind("SUPER + SHIFT + A", "ChatGPT app", { launch = "chatgpt", focus = "^chatgpt$" })
+  bind("SUPER + SHIFT + CTRL + A", "ChatGPT app", { launch = "chatgpt", focus = "^chatgpt$" })
 end
 bind("SUPER + SHIFT + ALT + A", "ChatGPT webapp",
   "omarchy launch or focus webapp " .. o.shell_quote("^.*-chatgpt\\.com__.*$") .. " https://chatgpt.com")
