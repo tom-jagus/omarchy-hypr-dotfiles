@@ -11,7 +11,7 @@ main="$config/hyprland.lua"
 link="$config/personal"
 stock="$defaults/hyprland.lua"
 
-for name in preferences.lua init.lua monitors.lua appearance.lua workspaces.lua bindings.lua autostart.lua scripts/launch-or-focus-browser; do
+for name in preferences.lua init.lua monitors.lua appearance.lua workspaces.lua privacy.lua bindings.lua autostart.lua scripts/launch-or-focus-browser; do
   [[ -f $root/$name ]] || fail "Missing runtime config file: $root/$name"
 done
 [[ -f $main && ! -L $main ]] || fail "Expected an existing regular config file: $main"
