@@ -2,7 +2,7 @@
 -- Set omarchy_preinstalled_bindings = false BEFORE loading Omarchy defaults
 -- in the main config; setting it here would be too late.
 
--- Resolve the adjacent script from this file's location, including when the
+-- Resolve adjacent scripts from this file's location, including when the
 -- repository is linked at ~/.config/hypr/personal.
 local config_file = debug.getinfo(1, "S").source:sub(2)
 local config_dir = assert(config_file:match("^(.*)/"), "Load bindings.lua using a path")
@@ -44,3 +44,6 @@ bind("SUPER + SHIFT + X", "X", { webapp = "https://x.com/", focus = true })
 -- Actions rather than application launches.
 bind("SUPER + M", "Mute microphone", "omarchy-audio-input-mute")
 bind("SUPER + ALT + M", "Mute audio", "omarchy-audio-output-volume mute-toggle")
+
+bind("SUPER + SHIFT + S", "Toggle streaming layout",
+  dofile(config_dir .. "/scripts/toggle-streaming-layout.lua"))

@@ -17,6 +17,8 @@ applications; this repository configures the desktop.
 - `config/autostart.lua` — applications launched at session startup.
 - `config/scripts/launch-or-focus-browser` — focuses a known default browser or
   launches it; an unrecognized browser is launched without focus matching.
+- `config/scripts/toggle-streaming-layout.lua` — streaming layout toggle callback,
+  loaded by the personal keybindings inside Hyprland.
 - `setup.sh` and `install/install-loaders.sh` — install the config and its loaders.
 
 ## Install
@@ -41,3 +43,14 @@ After Lua changes, run `hyprctl reload` and `hyprctl configerrors` to validate.
 Autostart commands take effect at the next session startup, not on reload.
 Check app classes with `hyprctl clients -j` when adding window rules or browser
 mappings.
+
+### Streaming layout
+
+Press **Super + Shift + S** to reserve the rightmost quarter of the external
+screen for OBS overlays, or of the internal screen when it is the only display.
+Press again to restore the normal layout. Existing bar space, display resolution,
+and scaling stay unchanged. OBS overlays must be configured separately in OBS.
+
+This reflows tiled windows; floating windows, fullscreen windows, and the bar
+are not constrained to the left three quarters. Displays are detected when the
+toggle is enabled, not continuously. Reloading the config resets streaming mode.
