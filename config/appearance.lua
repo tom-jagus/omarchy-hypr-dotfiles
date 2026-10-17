@@ -12,6 +12,12 @@ hl.config({
   decoration = {
     dim_inactive = true,
     dim_strength = 0.15,
+
+    blur = {
+      enabled = true,
+      size = 8,
+      passes = 2,
+    },
   },
 
   animations = {
@@ -23,5 +29,8 @@ hl.config({
   },
 })
 
--- Preserve Omarchy's per-application opt-outs from default opacity.
-o.window({ tag = "default-opacity" }, { opacity = "0.93 0.89" })
+-- Disable whole-window transparency, including Omarchy's default opacity.
+o.window(".*", { opacity = "1 1", no_blur = true })
+
+-- Blur only terminals; background transparency is configured in each terminal.
+o.window({ tag = "terminal" }, { no_blur = false })
