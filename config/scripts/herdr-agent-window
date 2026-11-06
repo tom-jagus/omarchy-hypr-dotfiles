@@ -1,0 +1,194 @@
+#!/usr/bin/env bash
+set -euo pipefail
+umask 077
+
+case "${1:-}" in
+  agent)
+    session=agent
+    app_id=org.omarchy.agent-main
+    title="Omarchy Agent"
+    ;;
+  console)
+    session=console
+    app_id=org.omarchy.agent-console
+    title="Omarchy Console"
+    ;;
+  *)
+    printf 'Usage: %s agent|console\n' "$0" >&2
+    exit 2
+    ;;
+esac
+
+workdir="$HOME/Work"
+runtime="${XDG_RUNTIME_DIR:?XDG_RUNTIME_DIR is not set}"
+state="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy"
+log="$state/$session-launch.log"
+pending="$runtime/omarchy-$session.pending"
+
+mkdir -p "$state"
+exec 2>>"$log"
+
+fail() {
+  printf '%s: %s\n' "$(date -Is)" "$*" >&2
+  notify-send "$title" "$*"$'\n'"Log: $log" || true
+  exit 1
+}
+
+# Keep the profiles independent and serialize startup within each profile.
+exec 9>"$runtime/omarchy-$session-launch.lock"
+flock -n 9 || exit 0
+
+unset HERDR_ENV HERDR_SESSION HERDR_SOCKET_PATH HERDR_WORKSPACE_ID
+unset HERDR_TAB_ID HERDR_PANE_ID HERDR_TERMINAL_ID HERDR_STARTUP_CWD
+
+h() {
+  timeout --kill-after=1s 3s herdr --session "$session" "$@"
+}
+
+present_window() {
+  local address
+  address=$(
+    timeout --kill-after=1s 3s hyprctl clients -j |
+      jq -r --arg app "$app_id" \
+        '[.[] | select(.class == $app)][0].address // empty'
+  ) || fail "Cannot read Hyprland windows."
+
+  [[ -n "$address" ]] || return 1
+  [[ "$address" =~ ^0x[0-9a-fA-F]+$ ]] || fail "Invalid window address."
+
+  # Console visibility belongs to Hyprland's native special-workspace toggle.
+  # Never focus or reopen it from this asynchronous startup helper.
+  if [[ "$session" == agent ]]; then
+    timeout --kill-after=1s 3s hyprctl dispatch \
+      "hl.dsp.focus({ window = \"address:$address\" })" >/dev/null ||
+      timeout --kill-after=1s 3s hyprctl dispatch \
+        focuswindow "address:$address" >/dev/null ||
+      fail "Cannot focus the agent window."
+  fi
+}
+
+agent_pane() {
+  local data count
+  data=$(h agent list) || fail "Cannot query agents in session '$session'."
+  count=$(jq -er '.result.agents | length' <<<"$data") ||
+    fail "Invalid agent-list response."
+
+  case "$count" in
+    0) ;;
+    1) jq -er '.result.agents[0].pane_id' <<<"$data" ;;
+    *) fail "Session '$session' has several agents; refusing to choose one." ;;
+  esac
+}
+
+if present_window; then
+  exit 0
+fi
+
+if ! h pane list >/dev/null 2>&1; then
+  [[ -d "$workdir" ]] || fail "Work directory does not exist: $workdir"
+  (
+    cd "$workdir"
+    exec nohup herdr --session "$session" server
+  ) </dev/null >>"$state/$session-server.log" 2>&1 9>&- &
+
+  deadline=$((SECONDS + 15))
+  until h pane list >/dev/null 2>&1; do
+    ((SECONDS < deadline)) ||
+      fail "Herdr did not start. Check $state/$session-server.log."
+    sleep 0.2
+  done
+fi
+
+pane=$(agent_pane)
+
+if [[ -z "$pane" ]]; then
+  panes=$(h pane list) || fail "Cannot list panes."
+  count=$(jq -er '.result.panes | length' <<<"$panes") ||
+    fail "Invalid pane-list response."
+
+  if [[ "$count" == 0 ]]; then
+    [[ -d "$workdir" ]] || fail "Work directory does not exist: $workdir"
+    created=$(h workspace create --cwd "$workdir" --label "$session" --no-focus) ||
+      fail "Cannot create the agent workspace."
+    pane=$(jq -er '.result.root_pane.pane_id' <<<"$created") ||
+      fail "Workspace creation returned no pane."
+    panes=$(h pane list) || fail "Cannot list the new pane."
+  elif [[ "$count" == 1 ]]; then
+    pane=$(jq -er '.result.panes[0].pane_id' <<<"$panes")
+  else
+    fail "Session '$session' has several panes but no recognized agent."
+  fi
+
+  terminal=$(jq -er --arg pane "$pane" \
+    '.result.panes[] | select(.pane_id == $pane) | .terminal_id' \
+    <<<"$panes") || fail "Cannot identify the agent terminal."
+
+  deadline=$((SECONDS + 10))
+  while :; do
+    info=$(h pane process-info --pane "$pane") ||
+      fail "Cannot inspect the agent pane."
+    shell_pid=$(jq -r '.result.process_info.shell_pid // empty' <<<"$info")
+    [[ -n "$shell_pid" ]] && break
+    ((SECONDS < deadline)) || fail "The pane's shell did not become available."
+    sleep 0.2
+  done
+
+  identity="$terminal:$shell_pid"
+  previous=""
+  if [[ -f "$pending" ]]; then
+    previous=$(<"$pending")
+  fi
+
+  if [[ "$previous" != "$identity" ]]; then
+    # A conservative process check, not a general shell-prompt detector.
+    if ! jq -e '
+      .result.process_info |
+      .shell_pid as $shell |
+      (.foreground_processes // []) as $foreground |
+      $shell != null and
+      .foreground_process_group_id == $shell and
+      ($foreground | length) == 1 and
+      $foreground[0].pid == $shell and
+      (["bash", "zsh", "fish", "sh", "dash", "ksh", "nu"] |
+        index($foreground[0].name)) != null
+    ' <<<"$info" >/dev/null; then
+      fail "The agent pane is busy or its shell cannot be verified."
+    fi
+
+    default_agent=$(timeout --kill-after=1s 3s omarchy default agent) ||
+      fail "Cannot read the default agent."
+    [[ -n "$default_agent" ]] ||
+      fail "Choose a default agent in Omarchy before launching."
+
+    # Record before submitting input so uncertain launches are not repeated.
+    printf '%s\n' "$identity" >"$pending"
+    h pane run "$pane" 'omarchy-agent --inline' >/dev/null ||
+      fail "Agent launch was not confirmed. Inspect '$session' before retrying."
+  fi
+
+  deadline=$((SECONDS + 30))
+  while :; do
+    detected=$(agent_pane)
+    if [[ -n "$detected" ]]; then
+      [[ "$detected" == "$pane" ]] ||
+        fail "An agent appeared in a different pane; refusing to attach."
+      break
+    fi
+    ((SECONDS < deadline)) ||
+      fail "No agent was recognized. Inspect '$session'; pending guard: $pending"
+    sleep 0.2
+  done
+fi
+
+rm -f -- "$pending"
+
+omarchy launch tui --app-id="$app_id" \
+  herdr --session "$session" agent attach "$pane" \
+  </dev/null >>"$log" 2>&1 9>&- &
+
+# Retain the lock until the terminal maps. Console checks never focus it.
+deadline=$((SECONDS + 15))
+until present_window; do
+  ((SECONDS < deadline)) || fail "The direct-attach window did not appear."
+  sleep 0.2
+done

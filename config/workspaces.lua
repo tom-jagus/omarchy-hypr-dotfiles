@@ -45,7 +45,7 @@ place_window(3, { initial_class = ".*github\\.com.*" })
 place_window(3, { class = "(?i)(gimp.*|org\\.gimp\\.GIMP.*)" })
 
 -- 4: Video.
-place_window(4, { initial_class = ".*youtube\\.com.*" })
+place_window(4, { initial_title = "youtube\\.com.*" })
 place_window(4, { initial_class = ".*netflix\\.com.*" })
 place_window(4, { initial_class = ".*crunchyroll\\.com.*" })
 place_window(4, { initial_class = ".*hbomax\\.com.*" })
@@ -81,11 +81,15 @@ place_window(8, { title = ".*spotify_player.*" })
 place_window(8, { class = "(?i)spotify" })
 place_window(8, { initial_class = ".*open\\.spotify\\.com.*" })
 
--- 9: Security and OBS.
-place_window(9, { class = "Proton Pass" })
+-- 9: VPN and OBS.
 place_window(9, { class = "proton\\.vpn\\.app\\.gtk" })
 place_window(9, { class = "(?i)(obs|com\\.obsproject\\.Studio)" })
+place_window(9, { initial_title = "studio\\.youtube\\.com.*" })
 
 -- 10: AI.
 place_window(10, { class = ".*chatgpt.*" })
 place_window(10, { class = "org\\.omarchy\\.agent" })
+place_window(10, { class = "org\\.omarchy\\.agent-main" })
+
+-- 11: Proton Pass, created on demand without a monitor pin or numbered shortcut.
+place_window(11, { class = "(?i)(proton-pass|Proton Pass)" })

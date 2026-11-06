@@ -11,7 +11,9 @@ main="$config/hyprland.lua"
 link="$config/personal"
 stock="$defaults/hyprland.lua"
 
-for name in preferences.lua init.lua monitors.lua appearance.lua workspaces.lua privacy.lua bindings.lua autostart.lua scripts/launch-or-focus-browser; do
+for name in preferences.lua init.lua monitors.lua appearance.lua workspaces.lua privacy.lua bindings.lua autostart.lua qconsole.lua \
+  scripts/launch-or-focus-browser scripts/herdr-agent-window \
+  scripts/launch-or-focus-agent scripts/launch-console-agent; do
   [[ -f $root/$name ]] || fail "Missing runtime config file: $root/$name"
 done
 [[ -f $main && ! -L $main ]] || fail "Expected an existing regular config file: $main"
@@ -45,8 +47,8 @@ cleanup() {
 trap cleanup EXIT
 cp -- "$main" "$stage/original"
 
-# Generate the one supported installed form from the stock template. Accept
-# either stock or this exact result: edited/duplicated/moved blocks fail safely.
+# Generate the previous installed form so existing managed loaders can upgrade.
+# Only exact stock/generated forms are accepted; other customizations fail safely.
 awk '
   $0 == "require(\"default.hypr.omarchy\")" {
     print "-- BEGIN omarchy-hypr-dotfiles preferences"
@@ -54,13 +56,26 @@ awk '
     print "-- END omarchy-hypr-dotfiles preferences"
   }
   { print }
-' "$stock" > "$stage/updated"
+' "$stock" > "$stage/previous"
 printf '%s\n' \
   '-- BEGIN omarchy-hypr-dotfiles overrides' \
   'dofile((os.getenv("XDG_CONFIG_HOME") or (os.getenv("HOME") .. "/.config")) .. "/hypr/personal/init.lua")' \
-  '-- END omarchy-hypr-dotfiles overrides' >> "$stage/updated"
+  '-- END omarchy-hypr-dotfiles overrides' >> "$stage/previous"
 
-if ! cmp -s -- "$main" "$stock" && ! cmp -s -- "$main" "$stage/updated"; then
+# Preload the personal console before Omarchy requires its console module.
+awk '
+  $0 == "require(\"default.hypr.omarchy\")" {
+    print "-- BEGIN omarchy-hypr-dotfiles console"
+    print "package.preload[\"default.hypr.qconsole\"] = function()"
+    print "  return dofile((os.getenv(\"XDG_CONFIG_HOME\") or (os.getenv(\"HOME\") .. \"/.config\")) .. \"/hypr/personal/qconsole.lua\")"
+    print "end"
+    print "-- END omarchy-hypr-dotfiles console"
+  }
+  { print }
+' "$stage/previous" > "$stage/updated"
+
+if ! cmp -s -- "$main" "$stock" && ! cmp -s -- "$main" "$stage/previous" &&
+   ! cmp -s -- "$main" "$stage/updated"; then
   fail 'hyprland.lua contains customizations or modified loader blocks. Review/migrate them first; nothing was changed.'
 fi
 

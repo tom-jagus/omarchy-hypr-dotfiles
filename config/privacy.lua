@@ -8,7 +8,10 @@ o.window(
 )
 
 -- Proton Pass desktop application.
-o.window("^Proton Pass$", { no_screen_share = true })
+o.window(
+  { class = "(?i)(proton-pass|Proton Pass)" },
+  { no_screen_share = true }
+)
 
 -- Signal desktop application.
 o.window("^signal$", { no_screen_share = true })
