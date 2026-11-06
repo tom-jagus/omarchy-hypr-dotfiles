@@ -4,12 +4,12 @@ umask 077
 
 case "${1:-}" in
   agent)
-    session=agent
+    profile=assistant
     app_id=org.omarchy.agent-main
     title="Omarchy Agent"
     ;;
   console)
-    session=console
+    profile=console
     app_id=org.omarchy.agent-console
     title="Omarchy Console"
     ;;
@@ -19,11 +19,12 @@ case "${1:-}" in
     ;;
 esac
 
+session=agents
 workdir="$HOME/Work"
 runtime="${XDG_RUNTIME_DIR:?XDG_RUNTIME_DIR is not set}"
 state="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy"
-log="$state/$session-launch.log"
-pending="$runtime/omarchy-$session.pending"
+log="$state/$profile-launch.log"
+pending="$runtime/omarchy-$session-$profile.pending"
 
 mkdir -p "$state"
 exec 2>>"$log"
@@ -34,9 +35,9 @@ fail() {
   exit 1
 }
 
-# Keep the profiles independent and serialize startup within each profile.
+# Serialize shared-session startup and workspace creation across both profiles.
 exec 9>"$runtime/omarchy-$session-launch.lock"
-flock -n 9 || exit 0
+flock -w 90 9 || fail "Timed out waiting for the shared agent launcher."
 
 unset HERDR_ENV HERDR_SESSION HERDR_SOCKET_PATH HERDR_WORKSPACE_ID
 unset HERDR_TAB_ID HERDR_PANE_ID HERDR_TERMINAL_ID HERDR_STARTUP_CWD
@@ -58,7 +59,7 @@ present_window() {
 
   # Console visibility belongs to Hyprland's native special-workspace toggle.
   # Never focus or reopen it from this asynchronous startup helper.
-  if [[ "$session" == agent ]]; then
+  if [[ "$profile" == assistant ]]; then
     timeout --kill-after=1s 3s hyprctl dispatch \
       "hl.dsp.focus({ window = \"address:$address\" })" >/dev/null ||
       timeout --kill-after=1s 3s hyprctl dispatch \
@@ -70,13 +71,16 @@ present_window() {
 agent_pane() {
   local data count
   data=$(h agent list) || fail "Cannot query agents in session '$session'."
-  count=$(jq -er '.result.agents | length' <<<"$data") ||
+  data=$(jq -ce --arg workspace "$workspace" \
+    '.result.agents | map(select(.workspace_id == $workspace))' <<<"$data") ||
+    fail "Invalid agent-list response."
+  count=$(jq -er 'length' <<<"$data") ||
     fail "Invalid agent-list response."
 
   case "$count" in
     0) ;;
-    1) jq -er '.result.agents[0].pane_id' <<<"$data" ;;
-    *) fail "Session '$session' has several agents; refusing to choose one." ;;
+    1) jq -er '.[0].pane_id' <<<"$data" ;;
+    *) fail "Workspace '$profile' has several agents; refusing to choose one." ;;
   esac
 }
 
@@ -99,24 +103,34 @@ if ! h pane list >/dev/null 2>&1; then
   done
 fi
 
+workspaces=$(h workspace list) || fail "Cannot list workspaces."
+matches=$(jq -ce --arg label "$profile" \
+  '.result.workspaces | map(select(.label == $label))' <<<"$workspaces") ||
+  fail "Invalid workspace-list response."
+count=$(jq -er 'length' <<<"$matches")
+case "$count" in
+  0)
+    [[ -d "$workdir" ]] || fail "Work directory does not exist: $workdir"
+    created=$(h workspace create --cwd "$workdir" --label "$profile" --no-focus) ||
+      fail "Cannot create workspace '$profile'."
+    workspace=$(jq -er '.result.workspace.workspace_id' <<<"$created") ||
+      fail "Workspace creation returned no workspace ID."
+    ;;
+  1) workspace=$(jq -er '.[0].workspace_id' <<<"$matches") ;;
+  *) fail "Several workspaces are labelled '$profile'; refusing to choose one." ;;
+esac
+
 pane=$(agent_pane)
 
 if [[ -z "$pane" ]]; then
-  panes=$(h pane list) || fail "Cannot list panes."
+  panes=$(h pane list --workspace "$workspace") || fail "Cannot list panes."
   count=$(jq -er '.result.panes | length' <<<"$panes") ||
     fail "Invalid pane-list response."
 
-  if [[ "$count" == 0 ]]; then
-    [[ -d "$workdir" ]] || fail "Work directory does not exist: $workdir"
-    created=$(h workspace create --cwd "$workdir" --label "$session" --no-focus) ||
-      fail "Cannot create the agent workspace."
-    pane=$(jq -er '.result.root_pane.pane_id' <<<"$created") ||
-      fail "Workspace creation returned no pane."
-    panes=$(h pane list) || fail "Cannot list the new pane."
-  elif [[ "$count" == 1 ]]; then
+  if [[ "$count" == 1 ]]; then
     pane=$(jq -er '.result.panes[0].pane_id' <<<"$panes")
   else
-    fail "Session '$session' has several panes but no recognized agent."
+    fail "Workspace '$profile' has no recognized agent and needs exactly one shell pane."
   fi
 
   terminal=$(jq -er --arg pane "$pane" \
