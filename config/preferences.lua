@@ -2,6 +2,12 @@
 -- optional preinstalled-app bindings that our personal bindings replace.
 omarchy_preinstalled_bindings = false
 
+-- Register the personal console before Omarchy requires its default module.
+local directory = assert(debug.getinfo(1, "S").source:sub(2):match("^(.*)/"))
+package.preload["default.hypr.qconsole"] = function()
+  return dofile(directory .. "/qconsole.lua")
+end
+
 -- Keep global workspace numbers instead of per-monitor blocks.
 -- Loaded before require("default.hypr.omarchy").
 package.preload["default.hypr.monitor-workspaces"] = function()

@@ -43,16 +43,21 @@ user inside an Omarchy Hyprland session:
 
 Setup links `config/` at `~/.config/hypr/personal`, adds loaders to
 `~/.config/hypr/hyprland.lua`, reloads Hyprland, and checks `hyprctl configerrors`.
-It expects the other user Hyprland Lua files to match Omarchy's stock templates;
-existing customizations or conflicting paths must be migrated separately. It
-makes no backups. Re-running setup with the same Omarchy templates and link does
-not duplicate loaders. Setup also adds the personal console preload before
-Omarchy's defaults and upgrades the previous generated loader format.
+It manages only the marked `omarchy-hypr-dotfiles` loader blocks and preserves
+other main-config content and user files. Do not place personal edits inside the
+managed blocks; setup replaces their contents. Existing user overrides remain
+loaded and may conflict with the personal configuration, so review them when
+migrating an older setup.
 
-An older manually added console preload is not a supported generated form.
-Review and migrate it before re-running setup. Files left over from older Omarchy
-templates can also fail the exact-template checks, even if only comments differ.
-Do not reset customized files without preserving your changes.
+Before the first main-config rewrite, setup saves
+`~/.config/hypr/hyprland.lua.before-omarchy-hypr-dotfiles` if that backup path does
+not already exist. Repeat runs do not duplicate loaders or replace the backup.
+Setup refuses malformed loader blocks, conflicting personal links, and main
+configs without exactly one supported `require("default.hypr.omarchy")` line.
+
+The console preload is registered by `config/preferences.lua` before Omarchy's
+defaults load. Setup removes the previous managed console block. An unmarked
+manual console preload is preserved; it is redundant if it loads the same module.
 
 Standalone installation does not install applications or shell plugins. The agent
 launchers require Herdr and an installed Omarchy default agent. The global
@@ -92,23 +97,25 @@ A separate workspace is not itself a privacy boundary.
 
 ### Herdr agents
 
-The desktop uses separate Herdr sessions for each entry point:
+The dedicated agent and Quake console use separate Herdr workspaces and
+conversations in the `agents` session. The full interface uses `default`.
 
-| Shortcut | Session | Interface |
-|---|---|---|
-| Super + Return | `default` | Full Herdr interface |
-| Super + Shift + A | `agent` | Direct agent attachment |
-| Super + grave | `console` | Direct agent attachment in the Quake console |
+| Shortcut | Session | Herdr workspace | Interface |
+|---|---|---|---|
+| Super + Return | `default` | Selected in Herdr | Full Herdr interface |
+| Super + Shift + A | `agents` | `assistant` | Direct agent attachment |
+| Super + grave | `agents` | `console` | Direct agent attachment in the Quake console |
 
-The shared launcher starts missing sessions headlessly, creates an initial
-workspace in `~/Work` when needed, and starts the Omarchy default agent if no
-agent is recognized. The directory must already exist; create it with
-`mkdir -p ~/Work` if needed. Bootstrap does not create it. Choose an installed
-agent with `omarchy default agent <name>` when running without bootstrap.
+The shared launcher starts the `agents` session headlessly if needed, creates
+the selected workspace in `~/Work` when missing, and starts the Omarchy default
+agent if no agent is recognized in that workspace. The directory must already exist; create it with
+`mkdir -p ~/Work` if installing standalone. Bootstrap creates it. Choose an
+installed agent with `omarchy default agent <name>` when running without
+bootstrap.
 An existing agent is reused even if the default changes.
-Per-session locks and pending-launch guards prevent blind startup retries.
-These launchers are intended for dedicated agent sessions, not arbitrary busy
-shells.
+A shared session lock serializes startup, and per-workspace pending-launch
+guards prevent blind startup retries. These launchers are intended for
+dedicated agent workspaces, not arbitrary busy shells.
 
 The dedicated window uses `org.omarchy.agent-main` and opens on workspace 10.
 The console uses `org.omarchy.agent-console` on `special:qconsole`. Its native
@@ -117,7 +124,7 @@ never focuses the window itself, and another application already occupying the
 console is left alone. Detach either direct attachment with Ctrl+B, then Q;
 the session and agent remain running.
 
-The installer registers `config/qconsole.lua` through
+`config/preferences.lua` registers `config/qconsole.lua` through
 `package.preload["default.hypr.qconsole"]` before
 `require("default.hypr.omarchy")`. No manual preload is needed. Load the console
 only through this override, not again from `config/init.lua`.
