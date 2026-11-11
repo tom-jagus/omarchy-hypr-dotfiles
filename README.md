@@ -77,7 +77,7 @@ mappings.
 ### Workspaces
 
 Workspace numbers are global, not separate blocks for each monitor. Workspaces
-1–5 are assigned to `DP-1`, and 6–10 to `eDP-1`. Adjust these connectors in
+1–5 are assigned to `DP-1`, and 6–11 to `eDP-1`. Adjust these connectors in
 `config/workspaces.lua` and the display settings in `config/monitors.lua` for your
 hardware. Super + number selects workspaces 1–10, with 0 selecting workspace 10.
 Super + Tab and Super + mouse-wheel cycle existing global workspaces.
@@ -85,12 +85,12 @@ Super + Tab and Super + mouse-wheel cycle existing global workspaces.
 Both ordinary Omarchy agent windows and the dedicated Herdr agent window open on
 workspace 10. The Quake console uses a separate special workspace.
 
-Proton Pass opens on workspace 11. It has no numbered shortcut, fixed monitor, or
-persistent workspace rule. Super + Shift + Slash launches or focuses it; global
-workspace cycling can also reach workspace 11 while it exists. The legacy widget
-only displays workspaces 1–10, so it does not show workspace 11. Closing the last
-window lets that workspace disappear normally. Window-placement rules apply to
-new windows, not already-open ones.
+Proton Pass opens on workspace 11, which is assigned to `eDP-1` and uses the
+scrolling layout. It has no numbered shortcut. Super + Shift + Slash launches or
+focuses Proton Pass; global workspace cycling can also reach workspace 11 while
+it exists. The legacy widget only displays workspaces 1–10, so it does not show
+workspace 11. Closing the last window lets that workspace disappear normally.
+Window-placement rules apply to new windows, not already-open ones.
 
 The Proton Pass screen-sharing exclusion remains enabled in `config/privacy.lua`.
 A separate workspace is not itself a privacy boundary.
@@ -134,9 +134,9 @@ updated extension. Compare it with
 `/usr/share/omarchy/default/hypr/qconsole.lua` after relevant Omarchy updates.
 
 Launcher and headless-server logs are under
-`${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/`, named `agent-launch.log`,
-`agent-server.log`, `console-launch.log`, and `console-server.log`. A failed
-launch may leave `omarchy-agent.pending` or `omarchy-console.pending` in
+`${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/`, named `assistant-launch.log`,
+`console-launch.log`, and `agents-server.log`. A failed launch may leave
+`omarchy-agents-assistant.pending` or `omarchy-agents-console.pending` in
 `$XDG_RUNTIME_DIR`. Inspect the affected session before clearing a guard;
 removing it permits another launch attempt.
 

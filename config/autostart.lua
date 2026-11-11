@@ -21,3 +21,6 @@ o.launch_on_start("omarchy launch signal")
 -- Mail and calendar: match webapp classes rather than changing page titles.
 o.launch_on_start("omarchy launch or focus webapp " .. o.shell_quote("^.*-mail\\.proton\\.me__.*$") .. " https://mail.proton.me")
 o.launch_on_start("omarchy launch or focus webapp " .. o.shell_quote("^.*-calendar\\.proton\\.me__.*$") .. " https://calendar.proton.me")
+
+-- Local TTS servece
+o.launch_on_start("tts start")

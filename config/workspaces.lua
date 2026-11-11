@@ -24,6 +24,7 @@ assign_workspace("7", "eDP-1", "scrolling")
 assign_workspace("8", "eDP-1", "scrolling")
 assign_workspace("9", "eDP-1", "scrolling")
 assign_workspace("10", "eDP-1", "scrolling")
+assign_workspace("11", "eDP-1", "scrolling")
 
 -- 1: Browsers supported by Omarchy, plus Vivaldi.
 -- Full-class matches keep separate webapps unaffected; (?i) ignores case.
@@ -91,5 +92,5 @@ place_window(10, { class = ".*chatgpt.*" })
 place_window(10, { class = "org\\.omarchy\\.agent" })
 place_window(10, { class = "org\\.omarchy\\.agent-main" })
 
--- 11: Proton Pass, created on demand without a monitor pin or numbered shortcut.
+-- 11: Proton Pass, created on demand without a numbered shortcut.
 place_window(11, { class = "(?i)(proton-pass|Proton Pass)" })
