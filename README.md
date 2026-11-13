@@ -25,8 +25,8 @@ configuration. Use both for the complete desktop setup.
   dedicated agent and console profiles.
 - `config/qconsole.lua` replaces Omarchy's console module with a user-owned copy
   that starts a Herdr-managed agent while retaining the console layout.
-- `config/scripts/toggle-streaming-layout.lua` — streaming layout toggle callback,
-  loaded by the personal keybindings inside Hyprland.
+- `config/scripts/toggle-streaming-layout.lua` controls the streaming layout.
+  `config/scripts/streaming-control` controls Stream Studio and launches OBS.
 - `setup.sh` and `install/install-loaders.sh` — install the config and its loaders.
 
 ## Install
@@ -144,9 +144,22 @@ removing it permits another launch attempt.
 
 Press **Super + Shift + S** to reserve the rightmost quarter of the external
 screen for OBS overlays, or of the internal screen when it is the only display.
-Press again to restore the normal layout. Existing bar space, display resolution,
-and scaling stay unchanged. OBS overlays must be configured separately in OBS.
+This also starts Stream Studio, enables keystroke presentation, and launches or
+focuses OBS. Press again to restore the layout and disable keystroke presentation;
+OBS and Stream Studio remain running. OBS overlays must be configured separately.
 
-This reflows tiled windows; floating windows, fullscreen windows, and the bar
-are not constrained to the left three quarters. Displays are detected when the
-toggle is enabled, not continuously. Reloading the config resets streaming mode.
+Press **Super + Shift + K** to toggle keystroke presentation. Notifications
+report its state or an error. A suspended state is not disabled: the toggle turns
+suspended presentation off. Before entering sensitive information, confirm the
+notification says `disabled`, or run `stream keys off` explicitly. Do not rely
+on automatic prompt detection to protect passwords.
+
+These shortcuts require OBS and the Stream Studio `stream` command and user
+service to be installed. Enabling keys may initially report a suspended state
+while capture starts or when desktop conditions prevent presentation.
+
+The layout reflows tiled windows; floating windows, fullscreen windows, and the
+bar are not constrained to the left three quarters. Existing bar space, display
+resolution, and scaling stay unchanged. Displays are detected when the toggle is
+enabled, not continuously. Reloading the config resets the layout toggle's
+session-local state; it does not turn keystroke presentation off.

@@ -60,5 +60,7 @@ bind("SUPER + SHIFT + X", "X", { webapp = "https://x.com/", focus = true })
 bind("SUPER + M", "Mute microphone", "omarchy-audio-input-mute")
 bind("SUPER + ALT + M", "Mute audio", "omarchy-audio-output-volume mute-toggle")
 
+bind("SUPER + SHIFT + K", "Toggle stream keys",
+  "bash " .. o.shell_quote(config_dir .. "/scripts/streaming-control") .. " toggle")
 bind("SUPER + SHIFT + S", "Toggle streaming layout",
   dofile(config_dir .. "/scripts/toggle-streaming-layout.lua"))

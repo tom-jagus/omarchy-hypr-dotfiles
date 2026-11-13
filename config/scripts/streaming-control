@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+# Serialize actions so a delayed startup cannot undo a later privacy request.
+exec 9>"${XDG_RUNTIME_DIR:?}/streaming-control.lock"
+flock 9
+
+notify_keys() {
+  local output
+  if output=$(stream keys "$1" 2>&1); then
+    notify-send "Stream keys" "$output"
+  else
+    notify-send -u critical "Stream keys: action failed" "$output"
+    return 1
+  fi
+}
+
+case "$1" in
+  start)
+    omarchy launch or focus 'obs' 'uwsm-app -- obs' 9>&- &
+    if ! output=$(stream start 2>&1); then
+      notify-send -u critical "Stream Studio: start failed" "$output"
+      exit 1
+    fi
+    # systemd can report the service started before its control socket exists.
+    for ((attempt = 0; attempt < 30; attempt++)); do
+      if output=$(stream keys on 2>&1); then
+        notify-send "Stream keys" "$output"
+        exit 0
+      fi
+      sleep 0.1
+    done
+    notify-send -u critical "Stream keys: enabling failed" "$output"
+    exit 1
+    ;;
+  off|toggle)
+    notify_keys "$1"
+    ;;
+  *)
+    exit 2
+    ;;
+esac
