@@ -144,9 +144,10 @@ removing it permits another launch attempt.
 
 Press **Super + Shift + S** to reserve the rightmost quarter of the external
 screen for OBS overlays, or of the internal screen when it is the only display.
-This also starts Stream Studio, enables keystroke presentation, and launches or
-focuses OBS. Press again to restore the layout and disable keystroke presentation;
-OBS and Stream Studio remain running. OBS overlays must be configured separately.
+This also starts Stream Studio, enables keystroke presentation and preview, then
+launches or focuses OBS. If startup, keys, or preview fails, OBS is not launched.
+Press again to restore the layout and disable keys and preview; OBS and Stream
+Studio remain running. OBS overlays must be configured separately.
 
 Press **Super + Shift + K** to toggle keystroke presentation. Notifications
 report its state or an error. A suspended state is not disabled: the toggle turns

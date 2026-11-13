@@ -16,7 +16,6 @@ notify_keys() {
 
 case "$1" in
   start)
-    omarchy launch or focus 'obs' 'uwsm-app -- obs' 9>&- &
     if ! output=$(stream start 2>&1); then
       notify-send -u critical "Stream Studio: start failed" "$output"
       exit 1
@@ -25,6 +24,11 @@ case "$1" in
     for ((attempt = 0; attempt < 30; attempt++)); do
       if output=$(stream keys on 2>&1); then
         notify-send "Stream keys" "$output"
+        if ! output=$(stream preview on 2>&1); then
+          notify-send -u critical "Stream preview: enabling failed" "$output"
+          exit 1
+        fi
+        omarchy launch or focus 'obs' 'uwsm-app -- obs' 9>&- &
         exit 0
       fi
       sleep 0.1
@@ -32,8 +36,17 @@ case "$1" in
     notify-send -u critical "Stream keys: enabling failed" "$output"
     exit 1
     ;;
-  off|toggle)
-    notify_keys "$1"
+  off)
+    status=0
+    notify_keys off || status=1
+    if ! output=$(stream preview off 2>&1); then
+      notify-send -u critical "Stream preview: disabling failed" "$output"
+      status=1
+    fi
+    exit "$status"
+    ;;
+  toggle)
+    notify_keys toggle
     ;;
   *)
     exit 2
